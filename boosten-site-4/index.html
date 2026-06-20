@@ -2153,7 +2153,7 @@ var ADMIN_SECRET=''; // Set this to match ADMIN_SECRET in your Worker secrets
 function smmPost(params,cb){
   fetch(WORKER+'/smm/order',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','x-app-secret':'PASTE_YOUR_FLW_APP_SECRET_HERE'},
     body:JSON.stringify(params)
   })
   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
