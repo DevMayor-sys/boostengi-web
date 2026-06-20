@@ -1304,6 +1304,8 @@ body.light-mode .rat-snooze{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
       <div class="atab" onclick="swAdmin('broadcast',this)">📡 Blast</div>
       <div class="atab" id="atab-referrals" onclick="swAdmin('referrals',this)">🔗 Referrals<span id="refBadge" style="display:none;background:#ffa500;color:#000;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px">0</span></div>
       <div class="atab" onclick="swAdmin('support',this)">📬 Support<span id="supportBadge" style="display:none;background:#ff4444;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px">0</span></div>
+      <div class="atab" onclick="swAdmin('banner',this)">📢 Banner</div>
+      <div class="atab" onclick="swAdmin('ratings',this)">⭐ Ratings</div>
     </div>
 
     <!-- RECEIPTS -->
@@ -1532,6 +1534,65 @@ body.light-mode .rat-snooze{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
         <button onclick="filterAdminRefs('rejected',this)" id="arf-rejected" style="background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.18);color:rgba(255,107,107,0.6);padding:6px 14px;border-radius:20px;font-size:11px;cursor:pointer;font-weight:600">❌ Rejected</button>
       </div>
       <div id="adminReferralsPanel"><div style="text-align:center;padding:50px 20px"><div style="font-size:32px;margin-bottom:10px">🔗</div><div style="font-size:13px;color:rgba(255,255,255,0.2)">Loading referrals...</div></div></div>
+    </div>
+
+
+    <!-- BANNER CONTROL -->
+    <div class="ac" id="ac-banner">
+      <div class="sec-hdr">
+        <div class="sec-hdr-icon" style="background:rgba(41,182,246,0.12);border:1px solid rgba(41,182,246,0.2)">📢</div>
+        <div>
+          <div class="sec-hdr-title">ANNOUNCEMENT BANNER</div>
+          <div class="sec-hdr-sub">Push a sticky message to the top of the site for all users</div>
+        </div>
+      </div>
+      <div id="bannerLivePreview" style="display:none;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;font-weight:500"></div>
+      <div class="fcard">
+        <div class="field" style="margin-bottom:10px">
+          <label>Message <span style="color:rgba(255,255,255,0.3);font-size:10px">(max 200 chars)</span></label>
+          <input type="text" id="bannerMsg" maxlength="200" placeholder="e.g. 🚀 New WhatsApp numbers now available!" oninput="previewBanner()">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div class="field">
+            <label>Type</label>
+            <select id="bannerType" onchange="previewBanner()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:10px;color:#fff;font-size:12px">
+              <option value="info">🔵 Info</option>
+              <option value="warning">🟠 Warning</option>
+              <option value="success">🟢 Success</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Link <span style="color:rgba(255,255,255,0.3);font-size:10px">(optional)</span></label>
+            <input type="url" id="bannerLink" placeholder="https://...">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="green-btn" onclick="pushBanner()" style="flex:1;text-align:center;padding:12px;margin-right:0">📢 Push Banner</button>
+          <button onclick="clearBanner()" style="padding:12px 16px;background:rgba(255,107,107,0.12);border:1px solid rgba(255,107,107,0.25);color:#ff6b6b;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">✕ Clear</button>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;margin-top:4px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.3);font-weight:700;letter-spacing:1px;margin-bottom:10px">📌 CURRENT LIVE BANNER</div>
+        <div id="bannerCurrentStatus" style="font-size:13px;color:rgba(255,255,255,0.4)">Loading...</div>
+      </div>
+    </div>
+
+    <!-- RATINGS VIEWER -->
+    <div class="ac" id="ac-ratings">
+      <div class="sec-hdr">
+        <div class="sec-hdr-icon" style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.2)">⭐</div>
+        <div style="flex:1">
+          <div class="sec-hdr-title">USER RATINGS</div>
+          <div class="sec-hdr-sub">Star ratings submitted by your users after orders</div>
+        </div>
+        <button onclick="loadRatings()" style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.2);color:#ffd700;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">↻ Refresh</button>
+      </div>
+      <div id="ratingsAvgBar" style="display:none;background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,215,0,0.04));border:1px solid rgba(255,215,0,0.2);border-radius:14px;padding:16px;margin-bottom:14px;text-align:center">
+        <div style="font-size:36px;font-weight:800;color:#ffd700" id="ratAvgNum">-</div>
+        <div style="font-size:20px;margin:4px 0" id="ratAvgStars"></div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.4)" id="ratAvgCount"></div>
+      </div>
+      <div id="ratingsList"><div style="text-align:center;padding:40px 20px"><div style="font-size:32px;margin-bottom:10px">⭐</div><div style="font-size:13px;color:rgba(255,255,255,0.2)">Loading ratings...</div></div></div>
     </div>
 
   </div><!-- /page-admin -->
@@ -4519,6 +4580,8 @@ function swAdmin(name,el){
   if(name==='support'){loadSupportTickets();}
   if(name==='bible'){var cv=g('curVerse'),cr=g('curRef');var sv=null;try{sv=JSON.parse(localStorage.getItem('bng_verse'));}catch(e){}if(sv&&sv.verse){if(cv)cv.textContent='"'+sv.verse.v+'"';if(cr)cr.textContent='- '+sv.verse.r;}}
   if(name==='broadcast'){loadBroadcastHistory();}
+  if(name==='banner'){loadBannerAdmin();}
+  if(name==='ratings'){loadRatings();}
 }
 
 // ── ADMIN REFERRAL PANEL ──
@@ -5874,6 +5937,123 @@ function remindRatingTomorrow(){
   localStorage.setItem('boosten_rat_snooze',String(Date.now()+24*60*60*1000));
   closeRating();
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN — BANNER CONTROL
+// ═══════════════════════════════════════════════════════════════════════════════
+var _bannerTypeColors={info:'#7ab8f5',warning:'#ffa500',success:'#00e87a'};
+var _bannerTypeBg={info:'rgba(26,58,92,0.9)',warning:'rgba(58,40,0,0.9)',success:'rgba(13,46,26,0.9)'};
+
+function previewBanner(){
+  var msg=document.getElementById('bannerMsg');
+  var type=document.getElementById('bannerType');
+  var prev=document.getElementById('bannerLivePreview');
+  if(!msg||!prev)return;
+  if(msg.value.trim()){
+    prev.style.display='block';
+    prev.style.background=_bannerTypeBg[type.value]||_bannerTypeBg.info;
+    prev.style.color=_bannerTypeColors[type.value]||_bannerTypeColors.info;
+    prev.style.border='1px solid '+(type.value==='info'?'rgba(42,90,156,0.6)':type.value==='warning'?'rgba(140,98,0,0.6)':'rgba(0,132,63,0.6)');
+    prev.textContent='Preview: '+msg.value;
+  }else{prev.style.display='none';}
+}
+
+function pushBanner(){
+  var msg=(document.getElementById('bannerMsg')||{}).value||'';
+  var type=(document.getElementById('bannerType')||{}).value||'info';
+  var link=(document.getElementById('bannerLink')||{}).value||'';
+  if(!msg.trim()){toast('Please enter a message first');return;}
+  if(!ADMIN_SECRET){toast('Set ADMIN_SECRET in the JS config');return;}
+  fetch(WORKER+'/announcement',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-secret':ADMIN_SECRET},
+    body:JSON.stringify({message:msg.trim(),type:type,link:link.trim()})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.ok){
+      toast('Banner pushed to all users! 📢');
+      loadBannerAdmin();
+      var bar=document.getElementById('site-banner');
+      var bt=document.getElementById('banner-text');
+      if(bar&&bt){bt.textContent=msg.trim();bar.className=type;bar.style.display='flex';sessionStorage.removeItem('banner_dismissed');}
+    }else{toast('Error: '+(d.error||'unknown'));}
+  }).catch(function(){toast('Network error pushing banner');});
+}
+
+function clearBanner(){
+  if(!ADMIN_SECRET){toast('Set ADMIN_SECRET in the JS config');return;}
+  fetch(WORKER+'/announcement',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-secret':ADMIN_SECRET},
+    body:JSON.stringify({clear:true})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.ok){
+      toast('Banner cleared ✅');
+      loadBannerAdmin();
+      var bar=document.getElementById('site-banner');
+      if(bar)bar.style.display='none';
+    }else{toast('Error: '+(d.error||'unknown'));}
+  }).catch(function(){toast('Network error clearing banner');});
+}
+
+function loadBannerAdmin(){
+  var el=document.getElementById('bannerCurrentStatus');
+  if(!el)return;
+  el.textContent='Fetching...';
+  fetch(WORKER+'/announcement').then(function(r){return r.json();}).then(function(d){
+    if(d.active&&d.message){
+      var col=_bannerTypeColors[d.type]||_bannerTypeColors.info;
+      el.innerHTML='<span style="color:'+col+';font-weight:700">['+((d.type||'info').toUpperCase())+']</span> '+escHtml(d.message)+(d.link?'<br><span style="font-size:11px;color:rgba(255,255,255,0.3)">Link: '+escHtml(d.link)+'</span>':'');
+    }else{
+      el.innerHTML='<span style="color:rgba(255,255,255,0.25)">No active banner right now</span>';
+    }
+  }).catch(function(){el.textContent='Could not load banner status';});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN — RATINGS VIEWER
+// ═══════════════════════════════════════════════════════════════════════════════
+function loadRatings(){
+  var el=document.getElementById('ratingsList');
+  var avgBar=document.getElementById('ratingsAvgBar');
+  if(!el)return;
+  if(!_db){el.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.3);font-size:13px">Database not connected</div>';return;}
+  el.innerHTML='<div style="text-align:center;padding:30px"><div style="font-size:24px">⏳</div><div style="font-size:12px;color:rgba(255,255,255,0.3);margin-top:8px">Loading ratings...</div></div>';
+  _db.collection('ratings').orderBy('date','desc').limit(100).get().then(function(snap){
+    var rows=[];
+    snap.forEach(function(doc){rows.push(doc.data());});
+    if(!rows.length){
+      el.innerHTML='<div style="text-align:center;padding:50px 20px"><div style="font-size:32px;margin-bottom:10px">⭐</div><div style="font-size:13px;color:rgba(255,255,255,0.2)">No ratings yet</div></div>';
+      if(avgBar)avgBar.style.display='none';
+      return;
+    }
+    var total=rows.reduce(function(s,r){return s+(r.rating||0);},0);
+    var avg=(total/rows.length).toFixed(1);
+    if(avgBar){
+      avgBar.style.display='block';
+      var n=document.getElementById('ratAvgNum');var s=document.getElementById('ratAvgStars');var cnt=document.getElementById('ratAvgCount');
+      if(n)n.textContent=avg;
+      if(s)s.textContent='★'.repeat(Math.round(avg))+'☆'.repeat(5-Math.round(avg));
+      if(cnt)cnt.textContent=rows.length+' rating'+(rows.length!==1?'s':'');
+    }
+    var html=rows.map(function(r){
+      var stars='★'.repeat(r.rating||0)+'☆'.repeat(5-(r.rating||0));
+      var col=r.rating>=4?'#00e87a':r.rating===3?'#ffa500':'#ff6b6b';
+      var d=r.date?r.date.slice(0,10):'';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">'
+        +'<span style="font-size:18px;color:'+col+';letter-spacing:2px;min-width:90px">'+stars+'</span>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:12px;color:rgba(255,255,255,0.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.email||r.uid||'Anonymous')+'</div>'
+        +(d?'<div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:2px">'+d+'</div>':'')
+        +'</div>'
+        +'<span style="font-size:22px;font-weight:800;color:'+col+'">'+r.rating+'</span>'
+        +'</div>';
+    }).join('');
+    el.innerHTML='<div style="padding:0 2px">'+html+'</div>';
+  }).catch(function(e){el.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,107,107,0.7);font-size:13px">Error loading ratings: '+e.message+'</div>';});
+}
+
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 </script>
 
