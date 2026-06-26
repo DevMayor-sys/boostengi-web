@@ -2308,6 +2308,55 @@ function japStatusToProgress(d,qty){
   return 1;
 }
 
+function requestRefill(localOrderId){
+  var order=null;
+  for(var i=0;i<orders.length;i++){if(orders[i].id===localOrderId){order=orders[i];break;}}
+  if(!order||!order.japId){toast('Order not found');return;}
+  toast('Sending refill request...');
+  fetch(WORKER+'/smm/refill',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({order:order.japId})
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d&&d.ok){
+      toast('✅ Refill requested! ID: '+d.refill);
+      addNotif('🔄 Refill Requested',order.svc.slice(0,40)+' — refill #'+d.refill+' submitted to provider.');
+    }else{
+      toast('Refill failed: '+(d.error||'Unknown error'));
+    }
+  })
+  .catch(function(e){toast('Refill error: '+e.message);});
+}
+
+function cancelSMMOrder(localOrderId){
+  var order=null;
+  for(var i=0;i<orders.length;i++){if(orders[i].id===localOrderId){order=orders[i];break;}}
+  if(!order||!order.japId){toast('Order not found');return;}
+  if(!confirm('Cancel this order? Any undelivered portion will be refunded by the provider.'))return;
+  toast('Cancelling order...');
+  fetch(WORKER+'/smm/cancel',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({order:order.japId})
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d&&d.ok){
+      order.status='cancelled';
+      localStorage.setItem('bng_orders',JSON.stringify(orders));
+      renderRecent();
+      var tp=document.getElementById('page-tracker');if(tp&&tp.classList.contains('active'))renderTracker();
+      toast('❌ Order cancelled. Check SMMWiz for any refund.');
+      addNotif('❌ Order Cancelled',order.svc.slice(0,40)+' — cancellation confirmed.');
+    }else{
+      toast('Cancel failed: '+(d.error||'Provider rejected cancellation'));
+    }
+  })
+  .catch(function(e){toast('Cancel error: '+e.message);});
+}
+
 var VERSES=[
   {v:'For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you.',r:'Jeremiah 29:11'},
   {v:'I can do all things through Christ who strengthens me.',r:'Philippians 4:13'},
@@ -3241,6 +3290,22 @@ function showIn(){
   var bn=g('bottomNav');if(bn)bn.classList.add('show');
   var cb=g('chatBtn');if(cb)cb.classList.add('show');
   updPts();
+  // Load orders from Firestore on login — syncs across devices/sessions
+  if(_db&&user&&user.uid){
+    _db.collection('orders').where('userId','==',user.uid).orderBy('start','desc').limit(50).get()
+      .then(function(snap){
+        if(!snap.empty){
+          var fsOrds=[];snap.forEach(function(doc){fsOrds.push(doc.data());});
+          var merged=fsOrds.slice();
+          orders.forEach(function(lo){if(!merged.find(function(x){return x.id===lo.id;}))merged.push(lo);});
+          merged.sort(function(a,b){return(b.start||0)-(a.start||0);});
+          orders=merged;
+          localStorage.setItem('bng_orders',JSON.stringify(orders));
+          renderRecent();
+          var tp=document.getElementById('page-tracker');if(tp&&tp.classList.contains('active'))renderTracker();
+        }
+      }).catch(function(e){console.warn('[Orders] Firestore load:',e.message);});
+  }
   // Wait for Firebase auth to fully restore before starting listeners (fixes Safari race condition)
   setTimeout(function(){if(_auth&&_auth.currentUser){try{startBalanceListener();}catch(e){}}else{setTimeout(function(){try{startBalanceListener();}catch(e){}},2000);}},2000);
   var cr=isCr();
@@ -3737,7 +3802,7 @@ function placeOrder(){
     if(_db&&user.uid){_db.collection('users').doc(user.uid).update({balance:user.balance}).catch(function(){});}
   }
   var shortCat=selSvc.category.replace(/&amp;/g,'&').split(' ')[0].slice(0,2).toUpperCase();
-  var order={id:'ORD'+Date.now(),svc:selSvc.name,svcId:selSvc.service,e:shortCat,link:link,qty:selQty,cost:isCr()?0:totalPts,status:'pending',progress:0,start:Date.now(),time:'Standard',delivered:0,japId:null};
+  var order={id:'ORD'+Date.now(),svc:selSvc.name,svcId:selSvc.service,e:shortCat,link:link,qty:selQty,cost:isCr()?0:totalPts,status:'pending',progress:0,start:Date.now(),time:'Standard',delivered:0,japId:null,canRefill:!!(selSvc.refill),canCancel:!!(selSvc.cancel)};
   orders.unshift(order);localStorage.setItem('bng_orders',JSON.stringify(orders));
   // Sync to Firestore for cross-device persistence
   if(_db&&user&&user.uid){_db.collection('orders').add({...order,userId:user.uid,userEmail:user.email}).catch(function(){});}
@@ -3806,6 +3871,7 @@ function renderTracker(){
   for(var i=0;i<orders.length;i++){
     var o=orders[i];
     var smmStatus=o.smmStatus||''; // raw status from SMMWiz
+    var eta=getDeliveryEstimate(o.svc);
     var st=o.status==='completed'?'✅ Completed':
            o.status==='processing'?(smmStatus?smmStatus.charAt(0).toUpperCase()+smmStatus.slice(1).toLowerCase():'⏳ Processing'):
            o.status==='queued'?'🔄 Queued':
@@ -3820,7 +3886,18 @@ function renderTracker(){
       if(mins<60)elapsed='<span style="color:rgba(255,255,255,0.25)"> · '+mins+'m elapsed</span>';
       else elapsed='<span style="color:rgba(255,255,255,0.25)"> · '+Math.floor(mins/60)+'h '+( mins%60)+'m elapsed</span>';
     }
-    html+='<div class="ord '+o.status+'"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><div><div style="font-size:13px;font-weight:500">'+o.svc+'</div><div style="font-size:11px;color:rgba(255,255,255,0.3)">#'+o.id+' - '+(o.cost?o.cost+' pts':'FREE')+elapsed+'</div>'+etaHtml+'</div><span class="sb '+o.status+'">'+st+'</span></div><div class="pbar"><div class="pfill '+o.status+'" style="width:'+o.progress+'%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.3)"><span>'+(o.delivered||0)+'/'+o.qty+' - '+o.time+'</span><span>'+o.progress+'%</span></div></div>';
+    var btnsHtml='';
+    if(o.japId){
+      var showRefill=o.canRefill&&(o.status==='completed'||o.status==='processing');
+      var showCancel=o.canCancel&&(o.status==='processing'||o.status==='pending');
+      if(showRefill||showCancel){
+        btnsHtml='<div style="display:flex;gap:8px;margin-top:10px">';
+        if(showRefill)btnsHtml+='<button onclick="requestRefill(\''+o.id+'\')" style="flex:1;background:rgba(0,232,122,0.12);border:1px solid rgba(0,232,122,0.3);color:#00e87a;padding:7px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">\uD83D\uDD04 Request Refill</button>';
+        if(showCancel)btnsHtml+='<button onclick="cancelSMMOrder(\''+o.id+'\')" style="flex:1;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);color:#ff6b6b;padding:7px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif">\u274C Cancel Order</button>';
+        btnsHtml+='</div>';
+      }
+    }
+    html+='<div class="ord '+o.status+'"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><div><div style="font-size:13px;font-weight:500">'+o.svc+'</div><div style="font-size:11px;color:rgba(255,255,255,0.3)">#'+o.id+' - '+(o.cost?o.cost+' pts':'FREE')+elapsed+'</div>'+etaHtml+'</div><span class="sb '+o.status+'">'+st+'</span></div><div class="pbar"><div class="pfill '+o.status+'" style="width:'+o.progress+'%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.3)"><span>'+(o.delivered||0)+'/'+o.qty+' - '+o.time+'</span><span>'+o.progress+'%</span></div>'+btnsHtml+'</div>';
   }
   el.innerHTML=html;
 }
