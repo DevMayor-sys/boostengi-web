@@ -2737,6 +2737,12 @@ function initFB(){
           return;
         }
         user=d.data();user.uid=fu.uid;
+        // Block banned users immediately (never block admin)
+        if(user.banned&&!isAdminUser){
+          _auth.signOut();
+          alert('Your account has been banned. Contact support@boostengi.com if you believe this is a mistake.');
+          return;
+        }
         // Always trust UID-based admin check
         if(isAdminUser)user.isAdmin=true;
         localStorage.setItem('boostng_user',JSON.stringify(user));
@@ -4302,16 +4308,32 @@ function initPaystackPayment(){
   handler.openIframe();
 }
 
-function subPaypal(){
-  var txId=(g('ppTx')||{value:''}).value.trim();
+async function subPaypal(){
+  var txId=(g('ppTx')||{value:''}).value.trim().toUpperCase();
   if(!pickedAmt){toast('Please select an amount first');return;}
   if(!txId){toast('Please enter your PayPal transaction ID');return;}
-  var bonus=pickedAmt>=200?2000:pickedAmt>=100?800:pickedAmt>=50?300:pickedAmt>=20?100:0;
-  var pts=pickedAmt*100+bonus;
-  saveRcp({id:'RCP'+Date.now(),type:'PayPal',txId:txId,amount:pickedAmt,pts:pts,status:'pending',date:new Date().toISOString(),user:user?user.email:'',split:splitInfo(pickedAmt)});
-  addNotif('PayPal Submitted','$'+pickedAmt+' PayPal payment submitted.');
-  toast('PayPal payment submitted! Points credited after verification.');
-  var pp=g('ppTx');if(pp)pp.value='';
+  if(txId.length!==17){
+    toast('❌ Invalid Transaction ID — PayPal IDs are always 17 characters. You entered '+txId.length+'.');
+    return;
+  }
+  toast('⏳ Verifying with PayPal…');
+  try{
+    var r=await fetch('https://api.boostengi.com/paypal/verify',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({txId:txId,email:user?user.email:'',amount:pickedAmt}),
+    });
+    var d=await r.json();
+    if(d.alreadyCredited){toast('⚠️ This transaction was already credited to your wallet.');return;}
+    if(!d.verified){toast('❌ '+(d.error||'Payment not verified. Check your TX ID and try again.'));return;}
+    var bonus=d.bonus||0;
+    var pts=d.pts||(pickedAmt*100+bonus);
+    saveRcp({id:'RCP'+Date.now(),type:'PayPal',txId:txId,amount:pickedAmt,pts:pts,status:'confirmed',date:new Date().toISOString(),user:user?user.email:'',split:d.split||splitInfo(pickedAmt)});
+    addNotif('PayPal Confirmed','$'+pickedAmt+' PayPal payment verified and credited!');
+    toast('✅ PayPal verified! $'+pickedAmt.toFixed(2)+' credited to your wallet.');
+    if(typeof loadBalance==='function')loadBalance();
+    var pp=g('ppTx');if(pp)pp.value='';
+  }catch(e){toast('❌ Error: '+e.message);}
 }
 
 function subCrypto(){
@@ -4539,12 +4561,22 @@ function cnfPay(id,pts){
 }
 
 function rejPay(id){
+  if(!confirm('Reject this payment? This cannot be undone.'))return;
   var recs=[];try{recs=JSON.parse(localStorage.getItem('bng_rcps')||'[]');}catch(e){}
   var targetRcp=null;
-  for(var i=0;i<recs.length;i++){if(recs[i].id===id){recs[i].status='rejected';targetRcp=recs[i];break;}}
+  for(var i=0;i<recs.length;i++){
+    if(recs[i].id===id){
+      recs[i].status='rejected';
+      recs[i].rejectedAt=new Date().toISOString();
+      targetRcp=recs[i];break;
+    }
+  }
   localStorage.setItem('bng_rcps',JSON.stringify(recs));
-  if(_db&&targetRcp)_db.collection('receipts').doc(id).set(targetRcp).catch(function(){});
-  toast('Payment rejected.');loadRcps();
+  if(_db&&targetRcp){
+    _db.collection('receipts').doc(id).update({status:'rejected',rejectedAt:new Date().toISOString()})
+      .catch(function(){_db.collection('receipts').doc(id).set(targetRcp).catch(function(){});});
+  }
+  toast('❌ Payment rejected.');loadRcps();
 }
 
 function swAdmin(name,el){
@@ -5049,7 +5081,12 @@ function loadAdminUsers(users){
     html+='<div><div style="font-weight:500">'+u.name+'</div><div style="font-size:10px;color:rgba(255,255,255,0.35)">'+u.email+'</div></div>';
     html+='<span style="color:#00e87a">'+bal+'</span>';
     html+='<span style="color:rgba(255,255,255,0.35)">'+joined+'</span>';
-    html+='<button onclick="banUser(\''+u.email+'\')" style="background:transparent;border:1px solid rgba(255,107,107,0.3);color:#ff6b6b;padding:4px 8px;border-radius:6px;font-size:10px;cursor:pointer">Ban</button>';
+    if(u.banned){
+      html+='<span style="color:#ff6b6b;font-size:10px;font-weight:700;margin-right:4px">🚫 Banned</span>';
+      html+='<button onclick="unbanUser(\''+u.email+'\')" style="background:transparent;border:1px solid rgba(0,232,122,0.3);color:#00e87a;padding:4px 8px;border-radius:6px;font-size:10px;cursor:pointer">Unban</button>';
+    }else{
+      html+='<button onclick="banUser(\''+u.email+'\')" style="background:transparent;border:1px solid rgba(255,107,107,0.3);color:#ff6b6b;padding:4px 8px;border-radius:6px;font-size:10px;cursor:pointer">Ban</button>';
+    }
     html+='</div>';
   }
   html+='</div>';
@@ -5132,8 +5169,26 @@ function givePoints(){
 }
 
 function banUser(email){
-  // ban confirmed
-  toast(email+' has been banned.');
+  if(!confirm('Ban '+email+'? They will be blocked from logging in.'))return;
+  if(!_db){toast('Database not ready');return;}
+  _db.collection('users').where('email','==',email.toLowerCase()).limit(1).get()
+    .then(function(snap){
+      if(snap.empty){toast('User not found: '+email);return;}
+      return snap.docs[0].ref.update({banned:true,bannedAt:new Date().toISOString()});
+    })
+    .then(function(){toast('🚫 '+email+' has been banned.');loadAdminUsers();})
+    .catch(function(e){toast('Ban failed: '+e.message);});
+}
+function unbanUser(email){
+  if(!confirm('Unban '+email+'?'))return;
+  if(!_db){toast('Database not ready');return;}
+  _db.collection('users').where('email','==',email.toLowerCase()).limit(1).get()
+    .then(function(snap){
+      if(snap.empty){toast('User not found: '+email);return;}
+      return snap.docs[0].ref.update({banned:false,bannedAt:''});
+    })
+    .then(function(){toast('✅ '+email+' has been unbanned.');loadAdminUsers();})
+    .catch(function(e){toast('Unban failed: '+e.message);});
 }
 
 function placeFreeOrder(){
