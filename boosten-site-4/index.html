@@ -1070,6 +1070,24 @@ body.light-mode .rat-snooze{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
       <button class="place-btn" onclick="placeOrder()">Place Order</button>
     </div>
 
+
+    <!-- MASS ORDER SECTION -->
+    <div id="massOrderSection" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700">Mass Order</div>
+        <span style="background:rgba(0,232,122,0.1);border:1px solid rgba(0,232,122,0.25);color:#00e87a;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700">BETA</span>
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:12px">Paste multiple links (one per line) — same service applied to all</div>
+      <div class="oform" style="display:block">
+        <div class="field"><label>Service ID</label><input type="text" id="massServiceId" placeholder="e.g. 10110 — find in service list above"></div>
+        <div class="field"><label>Quantity per link</label><input type="number" id="massQty" placeholder="e.g. 1000" min="1"></div>
+        <div class="field"><label>Links (one per line)</label><textarea id="massLinks" rows="6" placeholder="https://instagram.com/p/abc123&#10;https://instagram.com/p/xyz456&#10;https://instagram.com/p/def789" style="resize:vertical;font-family:monospace;font-size:12px"></textarea></div>
+        <div id="massCostPreview" style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:10px"></div>
+        <button onclick="placeMassOrder()" style="width:100%;background:linear-gradient(135deg,#00e87a,#00c060);border:none;color:#000;padding:13px;border-radius:10px;font-family:Syne,sans-serif;font-size:14px;font-weight:800;cursor:pointer">⚡ Place All Orders</button>
+        <div id="massOrderResults" style="margin-top:12px"></div>
+      </div>
+    </div>
+
     <div class="svcs" id="orderSvcs"></div>
     <div class="sec-title">RECENT ORDERS</div>
     <div id="recentOrds"><div style="font-size:13px;color:rgba(255,255,255,0.2);text-align:center;padding:20px">No orders yet</div></div>
@@ -1308,6 +1326,66 @@ body.light-mode .rat-snooze{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
       <div class="atab" onclick="swAdmin('support',this)">📬 Support<span id="supportBadge" style="display:none;background:#ff4444;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px">0</span></div>
       <div class="atab" onclick="swAdmin('banner',this)">📢 Banner</div>
       <div class="atab" onclick="swAdmin('ratings',this)">⭐ Ratings</div>
+      <div class="atab" onclick="swAdmin('pricing',this)">💲 Pricing</div>
+      <div class="atab" onclick="swAdmin('resellers',this)">🏪 Resellers</div>
+    </div>
+
+
+    <!-- PRICING MARKUP -->
+    <div class="ac" id="ac-pricing">
+      <div class="sec-hdr">
+        <div class="sec-hdr-icon" style="background:rgba(0,232,122,0.1);border:1px solid rgba(0,232,122,0.2)">💲</div>
+        <div>
+          <div class="sec-hdr-title">SMM PRICE MARKUP</div>
+          <div class="sec-hdr-sub">Multiplier applied on top of SMMWiz base rates. Stored live in Firestore.</div>
+        </div>
+      </div>
+      <div class="fcard">
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:14px;line-height:1.7">Set a <strong style="color:#00e87a">default</strong> multiplier applied to all services. Optionally override per category (e.g. <code style="color:#00e87a">instagram</code>, <code style="color:#00e87a">tiktok</code>, <code style="color:#00e87a">youtube</code>).</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div class="field"><label>Default Multiplier</label><input type="number" id="pricingDefault" placeholder="2.0" step="0.1" min="1" max="50"></div>
+          <div class="field"><label>Instagram Override</label><input type="number" id="pricingInstagram" placeholder="Leave blank for default" step="0.1" min="0"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div class="field"><label>TikTok Override</label><input type="number" id="pricingTiktok" placeholder="Leave blank for default" step="0.1" min="0"></div>
+          <div class="field"><label>YouTube Override</label><input type="number" id="pricingYoutube" placeholder="Leave blank for default" step="0.1" min="0"></div>
+        </div>
+        <button onclick="savePricingMarkup()" class="green-btn" style="width:100%;text-align:center;padding:12px;margin-right:0">💾 Save Markup Settings</button>
+        <div id="pricingResult" style="font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px"></div>
+      </div>
+      <div style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;margin-top:14px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:700;margin-bottom:8px;letter-spacing:1px">CURRENT LIVE MARKUP</div>
+        <div id="pricingCurrentDisplay" style="font-size:12px;color:rgba(255,255,255,0.6);line-height:2">Loading...</div>
+      </div>
+    </div>
+
+    <!-- RESELLERS -->
+    <div class="ac" id="ac-resellers">
+      <div class="sec-hdr">
+        <div class="sec-hdr-icon" style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.2)">🏪</div>
+        <div>
+          <div class="sec-hdr-title">RESELLER MANAGEMENT</div>
+          <div class="sec-hdr-sub">Grant / revoke reseller role — gives access to child panel</div>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="field" style="margin-bottom:10px"><label>User UID</label><input type="text" id="resellerUid" placeholder="Firebase UID from Users tab"></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button onclick="setResellerRole(true)" style="flex:1;background:rgba(0,232,122,0.12);border:1px solid rgba(0,232,122,0.3);color:#00e87a;padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✅ Grant Reseller</button>
+          <button onclick="setResellerRole(false)" style="flex:1;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);color:#ff6b6b;padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🚫 Revoke Reseller</button>
+        </div>
+        <div id="resellerResult" style="font-size:12px;color:rgba(255,255,255,0.4);text-align:center"></div>
+      </div>
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;margin-top:14px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:700;margin-bottom:8px;letter-spacing:1px">HOW CHILD PANEL WORKS</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.55);line-height:1.9">
+          1. Grant a user the reseller role here.<br>
+          2. They go to Settings → API Access and copy their Child Panel link.<br>
+          3. They share the link (boostengi.com?panel=UID) with their customers.<br>
+          4. Customers see a stripped panel with the reseller's custom prices.<br>
+          5. Orders go through BoostEN. Reseller pays wholesale, charges retail.
+        </div>
+      </div>
     </div>
 
     <!-- RECEIPTS -->
@@ -1766,6 +1844,30 @@ body.light-mode .rat-snooze{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
           <span class="sett-val" id="settRef">—</span>
           <button class="sett-edit-btn" onclick="cpTxt(document.getElementById('settRef').textContent,'Referral code')">Copy</button>
         </div>
+      </div>
+    </div>
+
+
+    <!-- API ACCESS -->
+    <div style="font-family:Syne,sans-serif;font-size:12px;font-weight:800;color:rgba(255,255,255,0.4);letter-spacing:1px;margin-bottom:10px">🔑 API ACCESS</div>
+    <div class="sett-card" id="apiKeyCard">
+      <div class="sett-row">
+        <span class="sett-label">API KEY</span>
+        <span class="sett-val" id="settApiKey" style="font-family:monospace;font-size:11px;color:#00e87a;word-break:break-all">—</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button onclick="cpTxt(document.getElementById('settApiKey').textContent,'API key copied!')" style="flex:1;background:rgba(0,232,122,0.1);border:1px solid rgba(0,232,122,0.25);color:#00e87a;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📋 Copy Key</button>
+        <button onclick="generateApiKey()" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">↻ Generate New</button>
+      </div>
+      <div style="margin-top:12px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:700;margin-bottom:8px;letter-spacing:1px">API ENDPOINT</div>
+        <div style="font-family:monospace;font-size:11px;color:rgba(255,255,255,0.6);word-break:break-all;line-height:1.7">https://api.boostengi.com/api/v1/</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:6px;line-height:1.6">smmboostengi: services, order, status, balance</div>
+      </div>
+      <div id="resellerPanelSection" style="display:none;margin-top:12px;background:rgba(0,232,122,0.05);border:1px solid rgba(0,232,122,0.18);border-radius:10px;padding:12px">
+        <div style="font-size:10px;color:#00e87a;font-weight:700;margin-bottom:8px;letter-spacing:1px">YOUR CHILD PANEL LINK</div>
+        <div style="font-family:monospace;font-size:11px;color:#00e87a;word-break:break-all;margin-bottom:8px" id="childPanelLink">—</div>
+        <button onclick="cpTxt(document.getElementById('childPanelLink').textContent,'Panel link copied!')" style="width:100%;background:rgba(0,232,122,0.12);border:1px solid rgba(0,232,122,0.3);color:#00e87a;padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📋 Copy Panel Link</button>
       </div>
     </div>
 
@@ -6189,6 +6291,499 @@ function loadRatings(){
 
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+
+// ============================================================
+// BoostEN v18 — Feature extensions
+// ============================================================
+
+// ── Dynamic pricing markup ──
+var _markupData = {default:2.0};
+
+async function loadPricingMarkup(){
+  try{
+    var r=await fetch(WORKER+'/config/pricing');
+    if(r.ok){var d=await r.json();if(d&&d.default){_markupData=d;MARKUP=d.default;}}
+  }catch(e){}
+}
+
+// ── API Key ──
+async function loadApiKey(){
+  if(!user||!user.uid)return;
+  var ak=g('settApiKey');
+  if(ak)ak.textContent=user.apiKey||'No key yet — tap Generate';
+  var rps=g('resellerPanelSection');
+  if(rps)rps.style.display=(user.role==='reseller'||user.isAdmin)?'block':'none';
+  var cpLink=g('childPanelLink');
+  if(cpLink&&user.uid)cpLink.textContent=location.origin+'?panel='+user.uid;
+}
+
+async function generateApiKey(){
+  if(!user||!user.uid){toast('Please log in first');return;}
+  try{
+    var r=await fetch(WORKER+'/api/v1/generate-key?uid='+user.uid);
+    var d=await r.json();
+    if(d.apiKey){
+      user.apiKey=d.apiKey;
+      localStorage.setItem('boostng_user',JSON.stringify(user));
+      if(_db)_db.collection('users').doc(user.uid).update({apiKey:d.apiKey}).catch(function(){});
+      var ak=g('settApiKey');if(ak)ak.textContent=d.apiKey;
+      toast('New API key generated!');
+    }else{toast('Error generating key');}
+  }catch(e){toast('Failed: '+e.message);}
+}
+
+// ── Mass Order ──
+function _massUpdateCost(){
+  var preview=g('massCostPreview');
+  if(!preview)return;
+  var svcId=((g('massServiceId')||{}).value||'').trim();
+  var qty=parseInt(((g('massQty')||{}).value)||0);
+  var links=((g('massLinks')||{}).value||'').split('\n').filter(function(l){return l.trim();});
+  if(!svcId||!qty||!links.length){preview.textContent='';return;}
+  var svc=(services||[]).find(function(s){return String(s.service)===svcId;});
+  if(!svc){preview.innerHTML='<span style="color:#ff6b6b">Service ID not found</span>';return;}
+  var costEach=parseFloat(((qty/1000)*parseFloat(svc.rate||0)).toFixed(4));
+  var total=parseFloat((costEach*links.length).toFixed(4));
+  var pts=Math.round(total*100);
+  preview.innerHTML=links.length+' links × M'+Math.round(costEach*100)+' each = <strong style="color:#00e87a">M'+pts+' total ($'+total.toFixed(4)+')</strong>';
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  ['massServiceId','massQty','massLinks'].forEach(function(id){
+    var el=g(id);if(el)el.addEventListener('input',_massUpdateCost);
+  });
+});
+
+async function placeMassOrder(){
+  if(!user){toast('Please log in first');return;}
+  var svcId=((g('massServiceId')||{}).value||'').trim();
+  var qty=parseInt(((g('massQty')||{}).value)||0);
+  var links=((g('massLinks')||{}).value||'').split('\n').filter(function(l){return l.trim();});
+  if(!svcId){toast('Enter a Service ID');return;}
+  if(!qty){toast('Enter quantity per link');return;}
+  if(!links.length){toast('Paste at least one link');return;}
+  if(links.length>50){toast('Maximum 50 links at once');return;}
+
+  var svc=(services||[]).find(function(s){return String(s.service)===svcId;});
+  if(!svc){toast('Service ID not found — search the services list above');return;}
+  var costEach=parseFloat(((qty/1000)*parseFloat(svc.rate||0)).toFixed(4));
+  var totalUSD=parseFloat((costEach*links.length).toFixed(4));
+  var totalPts=Math.round(totalUSD*100);
+
+  if(!user.isAdmin&&(user.balance||0)*100<totalPts){
+    toast('Insufficient balance. Need M'+totalPts+', have M'+Math.floor((user.balance||0)*100));
+    return;
+  }
+
+  var results=g('massOrderResults');
+  if(results)results.innerHTML='<div style="font-size:12px;color:rgba(255,255,255,0.4);text-align:center;padding:10px">Placing '+links.length+' orders...</div>';
+
+  var successes=0,failures=0;
+  var html='<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:700;letter-spacing:0.5px">ORDER RESULTS</div>';
+
+  for(var i=0;i<links.length;i++){
+    var link=links[i].trim();
+    var costPts=user.isAdmin?0:Math.round(costEach*100);
+    try{
+      var r=await fetch(WORKER+'/smm/order',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({service:svcId,link:link,quantity:qty,uid:user.isAdmin?null:user.uid,costPts:costPts})
+      });
+      var d=await r.json();
+      if(d.order||d.queued){
+        successes++;
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">'
+          +'<span style="color:#00e87a;font-size:14px;flex-shrink:0">✓</span>'
+          +'<span style="font-size:11px;color:rgba(255,255,255,0.6);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">'+link+'</span>'
+          +'<span style="font-size:10px;color:#00e87a;flex-shrink:0">'+(d.order?'#'+d.order:'Queued')+'</span>'
+          +'</div>';
+        if(!user.isAdmin&&d.order){
+          user.balance=Math.max(0,(user.balance||0)-costEach);
+          localStorage.setItem('boostng_user',JSON.stringify(user));
+        }
+      }else{
+        failures++;
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">'
+          +'<span style="color:#ff6b6b;font-size:14px;flex-shrink:0">✗</span>'
+          +'<span style="font-size:11px;color:rgba(255,107,107,0.7);flex:1">'+link+'</span>'
+          +'<span style="font-size:10px;color:rgba(255,107,107,0.5);flex-shrink:0">'+(d.error||'failed')+'</span>'
+          +'</div>';
+      }
+    }catch(e){
+      failures++;
+      html+='<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;color:rgba(255,107,107,0.7)">✗ '+link+'</div>';
+    }
+    if(results)results.innerHTML='<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px">Processing '+(i+1)+'/'+links.length+'...</div>';
+    await new Promise(function(res){setTimeout(res,200);});
+  }
+
+  html+='<div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.5)">'
+    +'<span style="color:#00e87a">✓ '+successes+' placed</span>'
+    +(failures?' &nbsp;<span style="color:#ff6b6b">✗ '+failures+' failed</span>':'')
+    +'</div>';
+  if(results)results.innerHTML=html;
+  updPts();
+  toast(successes+' order'+(successes!==1?'s':'')+' placed'+(failures?', '+failures+' failed':'')+'!');
+}
+
+// ── Admin Pricing ──
+async function loadAdminPricing(){
+  var disp=g('pricingCurrentDisplay');
+  if(disp)disp.textContent='Loading...';
+  try{
+    var r=await fetch(WORKER+'/config/pricing');
+    var d=await r.json();
+    _markupData=d;MARKUP=d.default||2.0;
+    var html='';
+    Object.keys(d).forEach(function(k){
+      html+='<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:rgba(255,255,255,0.4)">'+k+'</span><span style="color:#00e87a;font-weight:700">'+d[k]+'x</span></div>';
+    });
+    if(disp)disp.innerHTML=html||'<span style="color:rgba(255,255,255,0.3)">No markup set yet — using default 2x</span>';
+    var df=g('pricingDefault');if(df&&d.default)df.value=d.default;
+    var ig=g('pricingInstagram');if(ig&&d.instagram)ig.value=d.instagram;
+    var tt=g('pricingTiktok');if(tt&&d.tiktok)tt.value=d.tiktok;
+    var yt=g('pricingYoutube');if(yt&&d.youtube)yt.value=d.youtube;
+  }catch(e){if(disp)disp.textContent='Error loading — check worker';}
+}
+
+async function savePricingMarkup(){
+  var dfEl=g('pricingDefault');
+  var df=dfEl?parseFloat(dfEl.value):NaN;
+  var res=g('pricingResult');
+  if(isNaN(df)||df<=0){toast('Default multiplier must be a positive number');return;}
+  var payload={default:df};
+  var ig=parseFloat((g('pricingInstagram')||{}).value);if(!isNaN(ig)&&ig>0)payload.instagram=ig;
+  var tt=parseFloat((g('pricingTiktok')||{}).value);if(!isNaN(tt)&&tt>0)payload.tiktok=tt;
+  var yt=parseFloat((g('pricingYoutube')||{}).value);if(!isNaN(yt)&&yt>0)payload.youtube=yt;
+  try{
+    var r=await fetch(WORKER+'/config/pricing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var d=await r.json();
+    if(d.updated){
+      toast('Markup saved! Services will reflect new prices within 30 min (cache).');
+      if(res)res.textContent='Saved at '+new Date().toLocaleTimeString();
+      _markupData=payload;MARKUP=df;
+      await loadAdminPricing();
+    }else{toast('Error: '+(d.error||'Unknown'));}
+  }catch(e){toast('Failed: '+e.message);}
+}
+
+// ── Admin Resellers ──
+async function setResellerRole(enable){
+  var uid=((g('resellerUid')||{}).value||'').trim();
+  var res=g('resellerResult');
+  if(!uid){toast('Enter the user UID');return;}
+  try{
+    var r=await fetch(WORKER+'/admin/set-reseller',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:uid,enable:enable})});
+    var d=await r.json();
+    if(d.updated){
+      toast((enable?'✅ Reseller role granted':'🚫 Reseller role revoked')+' for '+uid);
+      if(res)res.textContent=(enable?'✅ Granted':'🚫 Revoked')+' at '+new Date().toLocaleTimeString();
+    }else{toast('Error: '+(d.error||'Unknown'));}
+  }catch(e){toast('Failed: '+e.message);}
+}
+
+// ── Child Panel ──
+var _cpResellerId=null,_cpServices=[],_cpPrices={},_cpSelSvc=null,_cpSelRate=0;
+
+async function initChildPanel(resellerId){
+  _cpResellerId=resellerId;
+  try{
+    var r=await fetch(WORKER+'/child-panel/info?reseller='+encodeURIComponent(resellerId));
+    if(!r.ok)throw new Error('Panel not found or not a reseller');
+    var d=await r.json();
+    var pn=g('cpPanelName');if(pn)pn.textContent=(d.name||'SMM')+' Panel';
+    _cpPrices=d.resellerPrices||{};
+    var svcs=await fetch(WORKER+'/smm/services/list');
+    if(svcs.ok)_cpServices=await svcs.json();
+    cpRenderSvcs(_cpServices);
+    goPage('childpanel');
+  }catch(e){
+    toast('Panel not available: '+e.message);
+    setTimeout(function(){goPage('home');},2000);
+  }
+}
+
+function cpRenderSvcs(svcs){
+  var el=g('cpSvcList');if(!el)return;
+  if(!svcs||!svcs.length){el.innerHTML='<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">No services available</div>';return;}
+  var bycat={};
+  svcs.forEach(function(s){
+    var c=s.category||'Other';
+    if(!bycat[c])bycat[c]=[];
+    var price=_cpPrices[String(s.service)]!=null?parseFloat(_cpPrices[String(s.service)]):parseFloat(s.rate||0);
+    bycat[c].push(Object.assign({},s,{_cpRate:price}));
+  });
+  var html='';
+  Object.keys(bycat).forEach(function(cat){
+    html+='<div style="font-family:Syne,sans-serif;font-size:11px;font-weight:800;color:rgba(255,255,255,0.3);letter-spacing:1px;margin:14px 0 6px">'+cat.toUpperCase()+'</div>';
+    bycat[cat].forEach(function(s){
+      var rate='$'+s._cpRate.toFixed(4)+'/1k';
+      html+='<div onclick="cpSelectSvc(this)" data-svc=''+JSON.stringify({service:s.service,name:s.name,_cpRate:s._cpRate,min:s.min,max:s.max}).replace(/'/g,"&#39;")+'' '
+        +'style="cursor:pointer;margin-bottom:6px;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;transition:border-color 0.2s" '
+        +'onmouseover="this.style.borderColor='rgba(0,232,122,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'">'
+        +'<div style="font-size:12px;font-weight:600;margin-bottom:2px">'+s.name+'</div>'
+        +'<div style="font-size:11px;color:#00e87a">'+rate+' &nbsp;·&nbsp; Min: '+s.min+'</div>'
+        +'</div>';
+    });
+  });
+  el.innerHTML=html;
+}
+
+function cpFilterSvcs(q){
+  if(!q)return cpRenderSvcs(_cpServices);
+  var ql=q.toLowerCase();
+  cpRenderSvcs(_cpServices.filter(function(s){
+    return(s.name||'').toLowerCase().includes(ql)||(s.category||'').toLowerCase().includes(ql);
+  }));
+}
+
+function cpSelectSvc(el){
+  try{var s=JSON.parse(el.dataset.svc);}catch(e){return;}
+  var s=JSON.parse(el.dataset.svc);
+  _cpSelSvc=s;_cpSelRate=s._cpRate;
+  var form=g('cpForm');if(form)form.classList.add('show');
+  var title=g('cpFormTitle');if(title)title.textContent=s.name;
+  var nameEl=g('cpSvcName');if(nameEl)nameEl.textContent=s.name;
+  var rateEl=g('cpRate');if(rateEl)rateEl.textContent='$'+s._cpRate.toFixed(4)+' per 1k';
+  cpUpdateTotal();
+}
+
+function cpUpdateTotal(){
+  if(!_cpSelSvc)return;
+  var qty=parseInt(((g('cpQty')||{}).value)||0);
+  var tot=g('cpTotal');
+  if(tot)tot.textContent=qty?'$'+parseFloat(((qty/1000)*_cpSelRate).toFixed(4)):'—';
+}
+
+async function placeCpOrder(){
+  if(!_cpSelSvc){toast('Select a service first');return;}
+  var link=((g('cpLink')||{}).value||'').trim();
+  var qty=parseInt(((g('cpQty')||{}).value)||0);
+  var email=((g('cpEmail')||{}).value||'').trim();
+  if(!link){toast('Enter your link');return;}
+  if(!qty||qty<(_cpSelSvc.min||1)){toast('Minimum quantity: '+(_cpSelSvc.min||1));return;}
+  if(!email){toast('Enter your email for order confirmation');return;}
+  try{
+    var r=await fetch(WORKER+'/child-panel/order',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({resellerId:_cpResellerId,customerId:email,service:String(_cpSelSvc.service),link:link,quantity:qty})
+    });
+    var d=await r.json();
+    if(d.order){
+      toast('Order #'+d.order+' placed successfully!');
+      var form=g('cpForm');if(form)form.classList.remove('show');
+      var cpLink=g('cpLink');if(cpLink)cpLink.value='';
+      var cpQty=g('cpQty');if(cpQty)cpQty.value='';
+    }else{toast('Error: '+(d.error||'Order failed'));}
+  }catch(e){toast('Failed: '+e.message);}
+}
+
+// ── Startup: detect ?panel=UID child panel mode ──
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  var panelUid=params.get('panel');
+  if(panelUid){
+    window.__CHILD_PANEL_UID=panelUid;
+    document.addEventListener('DOMContentLoaded',function(){
+      setTimeout(function(){initChildPanel(panelUid);},800);
+    });
+  }
+})();
+
+// ── Startup: load dynamic pricing markup ──
+document.addEventListener('DOMContentLoaded',function(){
+  loadPricingMarkup();
+});
+
+// ── Extend swAdmin to handle new pricing/resellers tabs ──
+if(typeof swAdmin==='function'){
+  var __origSwAdmin=swAdmin;
+  window.swAdmin=function(tab,el){
+    document.querySelectorAll('.ac').forEach(function(a){a.classList.remove('active');});
+    document.querySelectorAll('.atab').forEach(function(a){a.classList.remove('active');});
+    var ac=document.getElementById('ac-'+tab);
+    if(ac)ac.classList.add('active');
+    if(el)el.classList.add('active');
+    if(tab==='pricing'){loadAdminPricing();return;}
+    if(tab==='resellers'){return;}
+    __origSwAdmin(tab,el);
+  };
+}
+
+// ── Extend showSettings to load API key ──
+if(typeof showSettings==='function'){
+  var __origShowSettings=showSettings;
+  window.showSettings=function(){
+    __origShowSettings.apply(this,arguments);
+    loadApiKey();
+  };
+}
+
+
+// ═══════════════════════════════════════════════════
+//  RESELLER DASHBOARD
+// ═══════════════════════════════════════════════════
+var _rsdSvcs = [];
+var _rsdPrices = {};
+var _rsdFiltered = [];
+
+async function openResellerDashboard() {
+  if (!user || (!user.isAdmin && user.role !== 'reseller')) {
+    toast('Reseller access only'); return;
+  }
+  goPage('reseller');
+  var pl = g('rsdPanelLink');
+  if (pl) pl.textContent = location.origin + '?panel=' + user.uid;
+
+  // Load current custom prices
+  try {
+    var r = await fetch(WORKER + '/child-panel/info?reseller=' + encodeURIComponent(user.uid));
+    if (r.ok) {
+      var d = await r.json();
+      _rsdPrices = d.resellerPrices || {};
+    }
+  } catch(e) { _rsdPrices = {}; }
+
+  // Use already-loaded services or fetch fresh
+  if (services && services.length) {
+    _rsdSvcs = services;
+  } else {
+    try {
+      var sr = await fetch(WORKER + '/smm/services/list');
+      if (sr.ok) _rsdSvcs = await sr.json();
+    } catch(e) { _rsdSvcs = []; }
+  }
+  rsdRender(_rsdSvcs);
+}
+
+function rsdRender(svcs) {
+  var el = g('rsdServiceList'); if (!el) return;
+  if (!svcs || !svcs.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">No services found</div>';
+    return;
+  }
+  var bycat = {};
+  svcs.forEach(function(s) {
+    var c = s.category || 'Other';
+    if (!bycat[c]) bycat[c] = [];
+    bycat[c].push(s);
+  });
+  var html = '';
+  Object.keys(bycat).forEach(function(cat) {
+    html += '<div style="font-family:Syne,sans-serif;font-size:10px;font-weight:800;color:rgba(255,255,255,0.25);letter-spacing:1px;margin:14px 0 6px">' + cat.toUpperCase() + '</div>';
+    bycat[cat].forEach(function(s) {
+      var sid = String(s.service);
+      var base = parseFloat(s.rate || 0).toFixed(4);
+      var custom = _rsdPrices[sid] != null ? _rsdPrices[sid] : '';
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s.name + '</div>'
+        + '<div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:1px">Base: $' + base + '/1k &nbsp;·&nbsp; ID: ' + sid + '</div>'
+        + '</div>'
+        + '<div style="flex-shrink:0;display:flex;align-items:center;gap:6px">'
+        + '<span style="font-size:10px;color:rgba(255,255,255,0.25)">$</span>'
+        + '<input type="number" id="rsd_' + sid + '" value="' + custom + '" placeholder="' + base + '" step="0.0001" min="0"'
+        + ' style="width:80px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:6px 8px;color:#fff;font-size:12px;font-family:monospace;outline:none;text-align:right"'
+        + ' oninput="rsdMarkDirty('' + sid + '')" onfocus="this.style.borderColor='rgba(0,232,122,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">'
+        + '<span style="font-size:10px;color:rgba(255,255,255,0.25)">/1k</span>'
+        + '</div>'
+        + '</div>';
+    });
+  });
+  el.innerHTML = html;
+}
+
+function rsdMarkDirty(sid) {
+  var el = g('rsd_' + sid);
+  if (!el) return;
+  var val = parseFloat(el.value);
+  if (!isNaN(val) && val > 0) {
+    _rsdPrices[sid] = val;
+    el.style.color = '#00e87a';
+  } else {
+    delete _rsdPrices[sid];
+    el.style.color = '#fff';
+  }
+}
+
+function rsdFilterServices(q) {
+  if (!q) { rsdRender(_rsdSvcs); return; }
+  var ql = q.toLowerCase();
+  rsdRender(_rsdSvcs.filter(function(s) {
+    return (s.name || '').toLowerCase().includes(ql)
+      || (s.category || '').toLowerCase().includes(ql)
+      || String(s.service).includes(ql);
+  }));
+}
+
+async function rsdSavePrices() {
+  if (!user || !user.uid) { toast('Not logged in'); return; }
+  var btn = document.querySelector('#page-reseller button[onclick="rsdSavePrices()"]');
+  if (btn) { btn.textContent = '⏳ Saving...'; btn.disabled = true; }
+  try {
+    var r = await fetch(WORKER + '/child-panel/prices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, prices: _rsdPrices })
+    });
+    var d = await r.json();
+    if (d.updated) {
+      toast('✅ Custom prices saved!');
+      var res = g('rsdSaveResult');
+      if (res) { res.style.display = 'block'; res.style.color = '#00e87a'; res.textContent = '✅ Saved ' + Object.keys(_rsdPrices).length + ' custom price(s) at ' + new Date().toLocaleTimeString(); }
+    } else {
+      toast('Error: ' + (d.error || 'Unknown'));
+    }
+  } catch(e) { toast('Failed: ' + e.message); }
+  if (btn) { btn.textContent = '💾 Save All'; btn.disabled = false; }
+}
+
+// Inject "My Panel" nav item for resellers
+(function injectResellerNav() {
+  function tryInject() {
+    var nav = document.querySelector('.nav-items') || document.querySelector('nav') || document.querySelector('.bottom-nav');
+    if (!nav) return;
+    if (document.getElementById('resellerNavBtn')) return;
+    var btn = document.createElement('div');
+    btn.id = 'resellerNavBtn';
+    btn.style.cssText = 'display:none;cursor:pointer;padding:10px 14px;font-size:13px;font-weight:700;color:rgba(255,215,0,0.8);border-top:1px solid rgba(255,255,255,0.05)';
+    btn.innerHTML = '🏪 My Panel';
+    btn.onclick = function() { openResellerDashboard(); };
+    nav.appendChild(btn);
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(tryInject, 600);
+  });
+})();
+
+// Show/hide reseller nav item based on user role
+(function extendAuthListener() {
+  var origSetUser = window.setUser;
+  function showOrHideResellerNav(u) {
+    var btn = g('resellerNavBtn');
+    if (!btn) return;
+    btn.style.display = (u && (u.role === 'reseller' || u.isAdmin)) ? 'block' : 'none';
+  }
+  if (typeof origSetUser === 'function') {
+    window.setUser = function(u) {
+      origSetUser.apply(this, arguments);
+      showOrHideResellerNav(u);
+    };
+  }
+  // Also hook on login events
+  document.addEventListener('boostng:login', function(e) {
+    showOrHideResellerNav(e.detail);
+  });
+  // Poll for user object if events not present
+  var _rsdCheck = setInterval(function() {
+    if (typeof user !== 'undefined' && user && user.uid) {
+      showOrHideResellerNav(user);
+      clearInterval(_rsdCheck);
+    }
+  }, 1000);
+})();
 </script>
 
 <!-- ── Announcement Banner ── -->
@@ -6217,6 +6812,75 @@ function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').
     <button class="rat-snooze" onclick="remindRatingTomorrow()">Remind me tomorrow</button>
   </div>
 </div>
+
+
+  <!-- CHILD PANEL PAGE -->
+  <div class="page" id="page-childpanel" style="display:none">
+    <div style="text-align:center;padding:24px 0 18px">
+      <div style="font-family:Syne,sans-serif;font-size:28px;font-weight:800;margin-bottom:4px" id="cpPanelName">SMM Panel</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:16px">Powered by BoostEN</div>
+    </div>
+    <div class="svc-search-wrap" id="cpSearchWrap">
+      <input class="svc-search" id="cpSearch" placeholder="Search services..." oninput="cpFilterSvcs(this.value);var w=document.getElementById('cpSearchWrap');if(w)w.classList.toggle('has-val',this.value.length>0)">
+      <button class="svc-search-clear" onclick="var i=document.getElementById('cpSearch');i.value='';cpFilterSvcs('');document.getElementById('cpSearchWrap').classList.remove('has-val');i.focus();">✕</button>
+    </div>
+    <div id="cpSvcList" style="margin-top:14px"></div>
+    <div class="oform" id="cpForm">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700" id="cpFormTitle">Select a service</div>
+        <button onclick="var f=document.getElementById('cpForm');if(f)f.classList.remove('show');" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.5);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer">✕ Close</button>
+      </div>
+      <div class="field"><label>Your Link</label><input type="text" id="cpLink" placeholder="https://..."></div>
+      <div class="field"><label>Quantity</label><input type="number" id="cpQty" placeholder="1000" min="1" oninput="cpUpdateTotal()"></div>
+      <div class="info-box" style="margin-top:10px">
+        <div class="ir"><span class="il">Service</span><span class="iv g" id="cpSvcName">—</span></div>
+        <div class="ir"><span class="il">Rate per 1k</span><span class="iv" id="cpRate">—</span></div>
+        <div class="ir"><span class="il">Total</span><span class="iv g" id="cpTotal">—</span></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label>Your Email (for order updates)</label><input type="email" id="cpEmail" placeholder="you@example.com"></div>
+      <button onclick="placeCpOrder()" style="width:100%;background:linear-gradient(135deg,#00e87a,#00c060);border:none;color:#000;padding:13px;border-radius:10px;font-family:Syne,sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-top:4px">Place Order</button>
+    </div>
+    <div class="wm" style="margin-top:24px">© 2026 <span>MAYOR TECH INC</span> — ALL RIGHTS RESERVED</div>
+  </div>
+
+
+  <!-- RESELLER DASHBOARD PAGE -->
+  <div class="page" id="page-reseller" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800">My Panel Prices</div>
+      <span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.3);color:#ffd700;font-size:10px;padding:3px 10px;border-radius:10px;font-weight:700">RESELLER</span>
+    </div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:16px;line-height:1.7">
+      Set your own per-service prices below. Leave blank to use default. Your customers will see these prices at your panel link.
+    </div>
+
+    <!-- Panel link reminder -->
+    <div style="background:rgba(0,232,122,0.05);border:1px solid rgba(0,232,122,0.18);border-radius:12px;padding:12px 14px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;color:#00e87a;font-weight:700;letter-spacing:1px;margin-bottom:4px">YOUR PANEL LINK</div>
+        <div style="font-family:monospace;font-size:11px;color:#00e87a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="rsdPanelLink">Loading...</div>
+      </div>
+      <button onclick="cpTxt(document.getElementById('rsdPanelLink').textContent,'Panel link copied!')" style="background:rgba(0,232,122,0.12);border:1px solid rgba(0,232,122,0.3);color:#00e87a;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">📋 Copy</button>
+    </div>
+
+    <!-- Service price editor -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:rgba(255,255,255,0.6)">SERVICE PRICES</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="rsdSavePrices()" style="background:linear-gradient(135deg,#00e87a,#00c060);border:none;color:#000;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer">💾 Save All</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:12px">Values are price per 1,000 in USD (e.g. 1.50 = $1.50/1k)</div>
+
+    <!-- Search -->
+    <div style="position:relative;margin-bottom:12px">
+      <input id="rsdSearch" type="text" placeholder="Filter services..." oninput="rsdFilterServices(this.value)"
+        style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;outline:none">
+    </div>
+
+    <div id="rsdServiceList" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div id="rsdSaveResult" style="font-size:12px;color:rgba(255,255,255,0.4);text-align:center;padding:10px;display:none"></div>
+  </div>
 
 </body>
 </html>
